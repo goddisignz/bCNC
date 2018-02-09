@@ -440,19 +440,24 @@ class XYOrient:
 	def __init__(self):
 		self.xpos = []
 		self.ypos = []
-		self.points = 0
+		self.pointsx = 0
+		self.pointsy = 0
 		self.count = 0
 		self.start = False
+		self.matrix = [[1,0],[0,1]]
 		self.clear()
 
 	#-----------------------------------------------------------------------
 	def clear(self):
 		del self.xpos[:]
 		del self.ypos[:]
+		del self.matrix[:]
+		self.matrix = [[1,0],[0,1]]
 		self.start = False		
 		self.phiX = 0.0
 		self.phiY = 0.0
-		self.points = 0
+		self.pointsx = 0
+		self.pointsy = 0
 		self.count = 0
 
 	#-----------------------------------------------------------------------
@@ -465,20 +470,38 @@ class XYOrient:
 
 		self.count+=1
 
-		if self.points == self.count:
-			self.start = False
-			self.solve()
+		if self.pointsx == self.count:
+			self.phiX = -self.solve(self.xpos, self.ypos)
+			self.matrix[0][0] = math.cos(self.phiX)
+			self.matrix[1][0] = -math.sin(self.phiX)
+			del self.xpos[:]
+			del self.ypos[:]
 		
-	def scan(self, points):	
+		if self.pointsy == self.count:
+			self.phiY = self.solve(self.ypos, self.xpos)
+			self.matrix[0][1] = math.sin(self.phiY)
+			self.matrix[1][1] = math.cos(self.phiY)
+			del self.xpos[:]
+			del self.ypos[:]
+			start = False			
+		
+	def scan(self, pointsx, pointsy):	
+		self.clear()
 		self.start = True
 		self.count = 0
-		self.points = points*3
+		self.pointsx = pointsx*3
+		self.pointsy = self.pointsx + pointsy*3
 		
 	
-	def solve(self):	
-		m,b = numpy.polyfit(self.xpos, self.ypos, 1)
-		self.phiX = (math.atan(m)*180/math.pi)
-		print("Angle: %.4f" % self.phiX)
+	def solve(self, abscissa, ordinate):	
+		m,b = numpy.polyfit(abscissa, ordinate, 1)
+		angle = math.atan(m)
+		return angle
+
+	def compensate(self, x, y):
+		newx = x*self.matrix[0][0]+y*self.matrix[0][1]
+		newy = x*self.matrix[1][0]+y*self.matrix[1][1]
+		return newx, newy
 		
 
 #===============================================================================

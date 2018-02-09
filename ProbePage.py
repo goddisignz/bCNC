@@ -1274,7 +1274,7 @@ class OrientationFrame(CNCRibbon.PageFrame):
 		self.draw()
 
 	#-----------------------------------------------------------------------
-	# Probe an X-Y area
+	# Probe an L-shape
 	#-----------------------------------------------------------------------
 	def scan(self, event=None):
 		# absolute
@@ -1306,6 +1306,7 @@ class OrientationFrame(CNCRibbon.PageFrame):
 		lines.append("G0 Z%4.f" % (zmin) )
 		
 		xStep = (xto-xfrom) / float(xbins)
+		yStep = (yto-yfrom) / float(ybins)
 		
 		for i in range(0, xbins+1):
 			lines.append("G0 Y%.4f" % (yfrom))
@@ -1316,8 +1317,19 @@ class OrientationFrame(CNCRibbon.PageFrame):
 
 		lines.append("G0 Z%4.f" % (zmax) )	
 		lines.append("G0 X%.4f Y%.4f" % (xfrom, yfrom))
+		lines.append("G0 Z%4.f" % (zmin) )
 		
-		self.app.gcode.xyorient.scan(xbins+1)
+		for i in range(0, ybins+1):
+			lines.append("G0 X%.4f" % (xfrom))
+			lines.append("G0 Y%.4f" % (yfrom+i*yStep))
+			lines.append("%s F%.4f X%.4f" % (prbCommand, fastFeed, yprobe) )
+			lines.append("%s F%.4f X%.4f" % (revCommand, fastFeed, xfrom) )
+			lines.append("%s F%.4f X%.4f" % (prbCommand, probeFeed, yprobe) )
+
+		lines.append("G0 Z%4.f" % (zmax) )
+		lines.append("G0 X%.4f Y%.4f" % (xfrom, yfrom))
+		
+		self.app.gcode.xyorient.scan(xbins, ybins)
 		self.app.run(lines)
 
 #===============================================================================
