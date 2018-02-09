@@ -1153,6 +1153,7 @@ class Sender:
 								 CNC.vars["prbx"]-CNC.vars["wcox"],
 								 CNC.vars["prby"]-CNC.vars["wcoy"],
 								 CNC.vars["prbz"]-CNC.vars["wcoz"])
+							self.gcode.xyorient.add(CNC.vars["prbx"]-CNC.vars["wcox"], CNC.vars["prby"]-CNC.vars["wcoy"])
 							self._probeUpdate = True
 							CNC.vars[word[0]] = word[1:]
 						elif word[0] == "GC":
@@ -1182,6 +1183,7 @@ class Sender:
 									 CNC.vars["prbz"]
 									+CNC.vars["wz"]
 									-CNC.vars["mz"])
+								self.gcode.xyorient.add(CNC.vars["prbx"], CNC.vars["prby"])
 								self._probeUpdate = True
 							CNC.vars[pat.group(1)] = \
 								[float(pat.group(2)),

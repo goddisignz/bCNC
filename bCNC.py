@@ -231,6 +231,7 @@ class Application(Toplevel,Sender):
 
 		# XXX FIXME Do we need it or I can takes from Page every time?
 		self.autolevel = Page.frames["Probe:Autolevel"]
+		self.orientation = Page.frames["Probe:Orientation"]
 
 		# Left side
 		for name in Utils.getStr(Utils.__prg__,"ribbon").split():
@@ -330,6 +331,8 @@ class Application(Toplevel,Sender):
 		self.bind('<<AutolevelZero>>',	self.autolevel.setZero)
 		self.bind('<<AutolevelClear>>',	self.autolevel.clear)
 		self.bind('<<AutolevelScan>>',	self.autolevel.scan)
+		
+		self.bind('<<OrientationScan>>', self.orientation.scan)
 
 		self.bind('<<CameraOn>>',	self.canvas.cameraOn)
 		self.bind('<<CameraOff>>',	self.canvas.cameraOff)

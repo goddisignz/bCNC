@@ -12,6 +12,7 @@ import math
 import types
 import random
 import string
+import numpy
 
 import undo
 import Unicode
@@ -428,6 +429,57 @@ class Probe:
 
 		segments.append((x2,y2,z2+self.interpolate(x2,y2)))
 		return segments
+
+#===============================================================================
+# contains a list of machine points vs position in the gcode
+# calculates the transformation matrix (rotation + translation) needed
+# to adjust the gcode to match the workpiece on the machine
+#===============================================================================
+class XYOrient:
+	#-----------------------------------------------------------------------
+	def __init__(self):
+		self.xpos = []
+		self.ypos = []
+		self.points = 0
+		self.count = 0
+		self.start = False
+		self.clear()
+
+	#-----------------------------------------------------------------------
+	def clear(self):
+		del self.xpos[:]
+		del self.ypos[:]
+		self.start = False		
+		self.phiX = 0.0
+		self.phiY = 0.0
+		self.points = 0
+		self.count = 0
+
+	#-----------------------------------------------------------------------
+	def add(self, x, y):
+		if not self.start: return
+		
+		if self.count%3 == 2:
+			self.xpos.append(x)
+			self.ypos.append(y)
+
+		self.count+=1
+
+		if self.points == self.count:
+			self.start = False
+			self.solve()
+		
+	def scan(self, points):	
+		self.start = True
+		self.count = 0
+		self.points = points*3
+		
+	
+	def solve(self):	
+		m,b = numpy.polyfit(self.xpos, self.ypos, 1)
+		self.phiX = (math.atan(m)*180/math.pi)
+		print("Angle: %.4f" % self.phiX)
+		
 
 #===============================================================================
 # contains a list of machine points vs position in the gcode
@@ -2197,6 +2249,7 @@ class GCode:
 		self.undoredo = undo.UndoRedo()
 		self.probe    = Probe()
 		self.orient   = Orient()
+		self.xyorient   = XYOrient()
 		self.vars     = {}		# local variables
 		self.init()
 

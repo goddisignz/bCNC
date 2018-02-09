@@ -96,6 +96,18 @@ class ProbeTabGroup(CNCRibbon.ButtonGroup):
 		b.grid(row=row, column=col, padx=5, pady=0, sticky=NSEW)
 		tkExtra.Balloon.set(b, _("Autolevel Z surface"))
 
+				# ---
+		col += 1
+		b = Ribbon.LabelRadiobutton(self.frame,
+				image=Utils.icons["setsquare32"],
+				text=_("Orientation"),
+				compound=TOP,
+				variable=self.tab,
+				value="Orientation",
+				background=Ribbon._BACKGROUND)
+		b.grid(row=row, column=col, padx=5, pady=0, sticky=NSEW)
+		tkExtra.Balloon.set(b, _("Probe and orient X and Y axis"))
+
 		# ---
 		col += 1
 		b = Ribbon.LabelRadiobutton(self.frame,
@@ -180,6 +192,27 @@ class AutolevelGroup(CNCRibbon.ButtonGroup):
 		b.grid(row=row, column=col, rowspan=3, padx=0, pady=0, sticky=NSEW)
 		self.addWidget(b)
 		tkExtra.Balloon.set(b, _("Scan probed area for level information on Z plane"))
+
+#===============================================================================
+# Orientation Group
+#===============================================================================
+class OrientationGroup(CNCRibbon.ButtonGroup):
+	def __init__(self, master, app):
+		CNCRibbon.ButtonGroup.__init__(self, master, "Probe:Orientation", app)
+		self.label["background"] = Ribbon._BACKGROUND_GROUP2
+		
+		# ---
+		col,row=0,0
+		b = Ribbon.LabelButton(self.frame, self, "<<OrientationScan>>",
+				image=Utils.icons["gear32"],
+				text=_("Scan"),
+				compound=TOP,
+				justify=CENTER,
+				width=48,
+				background=Ribbon._BACKGROUND)
+		b.grid(row=row, column=col, padx=0, pady=0, sticky=NSEW)
+		self.addWidget(b)
+		tkExtra.Balloon.set(b, _("Probe X and Y Axis"))
 
 #===============================================================================
 # Probe Common Offset
@@ -1070,6 +1103,224 @@ class AutolevelFrame(CNCRibbon.PageFrame):
 		self.app.run(lines=self.app.gcode.probe.scan())
 
 #===============================================================================
+# Orientation Frame
+#===============================================================================
+class OrientationFrame(CNCRibbon.PageFrame):
+	def __init__(self, master, app):
+		CNCRibbon.PageFrame.__init__(self, master, "Probe:Orientation", app)
+
+		lframe = LabelFrame(self, text=_("Orientation"), foreground="DarkBlue")
+		lframe.pack(side=TOP, fill=X)
+
+		row,col = 0,0
+		# Empty
+		col += 1
+		Label(lframe, text=_("From")).grid(row=row, column=col, sticky=EW)
+		col += 1
+		Label(lframe, text=_("To")).grid(row=row, column=col, sticky=EW)
+		col += 1
+		Label(lframe, text=_("Probe")).grid(row=row, column=col, sticky=EW)
+		col += 1
+		Label(lframe, text="N").grid(row=row, column=col, sticky=EW)
+
+		# --- X ---
+		row += 1
+		col = 0
+		Label(lframe, text="X:").grid(row=row, column=col, sticky=E)
+		col += 1
+		self.orientXfrom = tkExtra.FloatEntry(lframe, background="White", width=5)
+		self.orientXfrom.grid(row=row, column=col, sticky=EW)
+		tkExtra.Balloon.set(self.orientXfrom, _("X start"))
+		self.addWidget(self.orientXfrom)
+
+		col += 1
+		self.orientXTo = tkExtra.FloatEntry(lframe, background="White", width=5)
+		self.orientXTo.grid(row=row, column=col, sticky=EW)
+		tkExtra.Balloon.set(self.orientXTo, _("X end"))
+		self.addWidget(self.orientXTo)
+		
+		col += 1
+		self.orientXProbe = tkExtra.FloatEntry(lframe, background="White", width=5)
+		self.orientXProbe.grid(row=row, column=col, sticky=EW)
+		tkExtra.Balloon.set(self.orientXProbe, _("X probe"))
+		self.addWidget(self.orientXProbe)
+
+		col += 1
+		self.orientXbins = Spinbox(lframe,
+					from_=2, to_=1000,
+					command=self.draw,
+					background="White",
+					width=3)
+		self.orientXbins.grid(row=row, column=col, sticky=EW)
+		tkExtra.Balloon.set(self.orientXbins, _("X bins"))
+		self.addWidget(self.orientXbins)
+
+		# --- Y ---
+		row += 1
+		col  = 0
+		Label(lframe, text="Y:").grid(row=row, column=col, sticky=E)
+		col += 1
+		self.orientYfrom = tkExtra.FloatEntry(lframe, background="White", width=5)
+		self.orientYfrom.grid(row=row, column=col, sticky=EW)
+		tkExtra.Balloon.set(self.orientYfrom, _("Y minimum"))
+		self.addWidget(self.orientYfrom)
+
+		col += 1
+		self.orientYto = tkExtra.FloatEntry(lframe, background="White", width=5)
+		self.orientYto.grid(row=row, column=col, sticky=EW)
+		tkExtra.Balloon.set(self.orientYto, _("Y maximum"))
+		self.addWidget(self.orientYto)
+
+
+		col += 1
+		self.orientYProbe = tkExtra.FloatEntry(lframe, background="White", width=5)
+		self.orientYProbe.grid(row=row, column=col, sticky=EW)
+		tkExtra.Balloon.set(self.orientYProbe, _("Y probe"))
+		self.addWidget(self.orientYProbe)
+		
+		col += 1
+		self.orientYbins = Spinbox(lframe,
+					from_=2, to_=1000,
+					command=self.draw,
+					background="White",
+					width=3)
+		self.orientYbins.grid(row=row, column=col, sticky=EW)
+		tkExtra.Balloon.set(self.orientYbins, _("Y bins"))
+		self.addWidget(self.orientYbins)
+
+		# Max Z
+		row += 1
+		col  = 0
+
+		Label(lframe, text="Z:").grid(row=row, column=col, sticky=E)
+		col += 1
+		self.orientZmin = tkExtra.FloatEntry(lframe, background="White", width=5)
+		self.orientZmin.grid(row=row, column=col, sticky=EW)
+		tkExtra.Balloon.set(self.orientZmin, _("Z Minimum depth to scan"))
+		self.addWidget(self.orientZmin)
+
+		col += 1
+		self.orientZmax = tkExtra.FloatEntry(lframe, background="White", width=5)
+		self.orientZmax.grid(row=row, column=col, sticky=EW)
+		tkExtra.Balloon.set(self.orientZmax, _("Z safe to move"))
+		self.addWidget(self.orientZmax)
+
+		lframe.grid_columnconfigure(1,weight=1)
+		lframe.grid_columnconfigure(2,weight=1)
+		lframe.grid_columnconfigure(3,weight=1)
+		lframe.grid_columnconfigure(4,weight=1)
+
+		self.loadConfig()
+
+	#-----------------------------------------------------------------------
+	def setValues(self):
+		orient = self.app.gcode.orient
+		self.orientXfrom.set(str(orient.xmin))
+		self.orientXTo.set(str(orient.xmax))
+		self.orientXbins.delete(0,END)
+		self.orientXbins.insert(0,orient.xn)
+		self.orientXstep["text"] = str(orient.xstep())
+
+		self.orientYfrom.set(str(orient.ymin))
+		self.orientYto.set(str(orient.ymax))
+		self.orientYbins.delete(0,END)
+		self.orientYbins.insert(0,orient.yn)
+		self.orientYstep["text"] = str(orient.ystep())
+
+		self.orientZmin.set(str(orient.zmin))
+		self.orientZmax.set(str(orient.zmax))
+
+	#-----------------------------------------------------------------------
+	def saveConfig(self):
+		Utils.setFloat("Probe", "orientxfrom", self.orientXfrom.get())
+		Utils.setFloat("Probe", "orientxto", self.orientXTo.get())
+		Utils.setFloat("Probe", "orientxprobe", self.orientXProbe.get())
+		Utils.setInt(  "Probe", "orientxn",   self.orientXbins.get())
+		Utils.setFloat("Probe", "orientyfrom", self.orientYfrom.get())
+		Utils.setFloat("Probe", "orientyprobe", self.orientYProbe.get())
+		Utils.setFloat("Probe", "orientyto", self.orientYto.get())
+		Utils.setInt(  "Probe", "orientyn",   self.orientYbins.get())
+		Utils.setFloat("Probe", "orientzmin", self.orientZmin.get())
+		Utils.setFloat("Probe", "orientzmax", self.orientZmax.get())
+
+	#-----------------------------------------------------------------------
+	def loadConfig(self):
+		self.orientXfrom.set(Utils.getFloat("Probe","orientxfrom", 0))
+		self.orientXTo.set(Utils.getFloat("Probe","orientxto", 100))
+		self.orientXProbe.set(Utils.getFloat("Probe","orientxprobe", -5))
+		self.orientYfrom.set(Utils.getFloat("Probe","orientyfrom", 0))
+		self.orientYto.set(Utils.getFloat("Probe","orientyto", 100))
+		self.orientYProbe.set(Utils.getFloat("Probe","orientyprobe", -5))
+		self.orientZmin.set(Utils.getFloat("Probe","orientzmin", 0))
+		self.orientZmax.set(Utils.getFloat("Probe","orientzmax", 5))
+
+		self.orientXbins.delete(0,END)
+		self.orientXbins.insert(0,max(2,Utils.getInt("Probe","orientxn",5)))
+
+		self.orientYbins.delete(0,END)
+		self.orientYbins.insert(0,max(2,Utils.getInt("Probe","orientyn",5)))
+		
+	#-----------------------------------------------------------------------
+	def draw(self):
+		self.event_generate("<<DrawProbe>>")
+
+	#-----------------------------------------------------------------------
+	def clear(self, event=None):
+		ans = tkMessageBox.askquestion(_("Delete orientation information"),
+			_("Do you want to delete all orientation information?"),
+			parent=self.winfo_toplevel())
+		if ans!=tkMessageBox.YES: return
+		self.app.gcode.probe.clear()
+		self.draw()
+
+	#-----------------------------------------------------------------------
+	# Probe an X-Y area
+	#-----------------------------------------------------------------------
+	def scan(self, event=None):
+		# absolute
+		# self.app.run(lines=self.app.gcode.probe.scan())
+		lines = []
+		
+		prb_reverse = {"2": "4", "3": "5", "4": "2", "5": "3"}
+		
+		fastFeed = CNC.vars["fastprbfeed"]
+		probeFeed = CNC.vars["prbfeed"]
+		prbCommand = CNC.vars["prbcmd"]
+		CNC.vars["prbcmdreverse"] = (prbCommand[:-1] +	prb_reverse[prbCommand[-1]])
+		revCommand = CNC.vars["prbcmdreverse"] 
+		
+		xfrom = float(self.orientXfrom.get())
+		xto = float(self.orientXTo.get())
+		xprobe = float(self.orientXProbe.get())
+		yfrom = float(self.orientYfrom.get())
+		yto = float(self.orientYto.get())
+		yprobe = float(self.orientYProbe.get())
+		zmin = float(self.orientZmin.get())
+		zmax = float(self.orientZmax.get())
+		xbins = int(self.orientXbins.get())
+		ybins = int(self.orientYbins.get())
+		
+		lines.append("G90 G21 F%.4f"  % (fastFeed) )
+		lines.append("G0 Z%4.f" % (zmax) )
+		lines.append("G0 X%.4f Y%.4f" % (xfrom, yfrom) )
+		lines.append("G0 Z%4.f" % (zmin) )
+		
+		xStep = (xto-xfrom) / float(xbins)
+		
+		for i in range(0, xbins+1):
+			lines.append("G0 Y%.4f" % (yfrom))
+			lines.append("G0 X%.4f" % (xfrom+i*xStep))
+			lines.append("%s F%.4f Y%.4f" % (prbCommand, fastFeed, xprobe) )
+			lines.append("%s F%.4f Y%.4f" % (revCommand, fastFeed, yfrom) )
+			lines.append("%s F%.4f Y%.4f" % (prbCommand, probeFeed, xprobe) )
+
+		lines.append("G0 Z%4.f" % (zmax) )	
+		lines.append("G0 X%.4f Y%.4f" % (xfrom, yfrom))
+		
+		self.app.gcode.xyorient.scan(xbins+1)
+		self.app.run(lines)
+
+#===============================================================================
 # Camera Group
 #===============================================================================
 class CameraGroup(CNCRibbon.ButtonGroup):
@@ -1759,8 +2010,8 @@ class ProbePage(CNCRibbon.Page):
 	# Add a widget in the widgets list to enable disable during the run
 	#-----------------------------------------------------------------------
 	def register(self):
-		self._register((ProbeTabGroup, AutolevelGroup, CameraGroup, ToolGroup),
-			(ProbeCommonFrame, ProbeFrame, AutolevelFrame, CameraFrame, ToolFrame))
+		self._register((ProbeTabGroup, AutolevelGroup, OrientationGroup, CameraGroup, ToolGroup),
+			(ProbeCommonFrame, ProbeFrame, AutolevelFrame, OrientationFrame, CameraFrame, ToolFrame))
 
 		self.tabGroup = CNCRibbon.Page.groups["Probe"]
 		self.tabGroup.tab.set("Probe")
