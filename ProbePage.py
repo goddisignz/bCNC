@@ -2,6 +2,8 @@
 #
 # Author: vvlachoudis@gmail.com
 # Date: 18-Jun-2015
+import webbrowser
+from tkExtra import _ValidatingEntry
 
 __author__ = "Vasilis Vlachoudis"
 __email__  = "vvlachoudis@gmail.com"
@@ -726,7 +728,7 @@ class ProbeFrame(CNCRibbon.PageFrame):
 		self.app.run(lines=lines)
 
 	#-----------------------------------------------------------------------
-	# Solve the system and update fields
+	# Solve the system and orientUpdate fields
 	#-----------------------------------------------------------------------
 	def orientSolve(self, event=None):
 		try:
@@ -1196,7 +1198,7 @@ class OrientationFrame(CNCRibbon.PageFrame):
 		col += 1
 		self.orientZmin = tkExtra.FloatEntry(lframe, background="White", width=5)
 		self.orientZmin.grid(row=row, column=col, sticky=EW)
-		tkExtra.Balloon.set(self.orientZmin, _("Z Minimum depth to scan"))
+		tkExtra.Balloon.set(self.orientZmin, _("Z minimum depth to scan"))
 		self.addWidget(self.orientZmin)
 
 		col += 1
@@ -1204,31 +1206,68 @@ class OrientationFrame(CNCRibbon.PageFrame):
 		self.orientZmax.grid(row=row, column=col, sticky=EW)
 		tkExtra.Balloon.set(self.orientZmax, _("Z safe to move"))
 		self.addWidget(self.orientZmax)
+		
+		row += 1
+		col = 0
+		Label(lframe, text=_("X-Axis Angle:")).grid(row=row, column=col, sticky=EW)
+		
+		col += 1
 
+		self.orientXAngleStrVar = StringVar()
+		self.orientXAngleStrVar.trace("w", lambda *_: self.orientUpdate())
+		self.orientXAngle = tkExtra.FloatEntry(lframe, background="White", width=5, textvariable=self.orientXAngleStrVar)
+		self.orientXAngle.grid(row=row, column=col, sticky=EW)
+		tkExtra.Balloon.set(self.orientXAngle, _("Set the X-axis angle"))
+		self.addWidget(self.orientXAngle)
+		
+		row += 1
+		col = 0
+		Label(lframe, text=_("Y-Axis Angle:")).grid(row=row, column=col, sticky=EW)
+		
+		col += 1
+
+		self.orientYAngleStrVar = StringVar()
+		self.orientYAngleStrVar.trace("w", lambda *_: self.orientUpdate())
+		self.orientYAngle = tkExtra.FloatEntry(lframe, background="White", width=5, textvariable=self.orientYAngleStrVar)
+		self.orientYAngle.grid(row=row, column=col, sticky=EW)
+		tkExtra.Balloon.set(self.orientYAngle, _("Set the Y axis angle"))
+		self.addWidget(self.orientYAngle)
+		
+		row += 1
+		col = 0
+		
+		Label(lframe, text=_("Axis Angle")).grid(row=row, column=col, sticky=EW)
+		
+		col += 1
+		
+		self.orientShear = Label(lframe, foreground="DarkBlue", background="gray90", width=5)
+		self.orientShear.grid(row=row, column=col, sticky=EW)
+		tkExtra.Balloon.set(self.orientShear, _("Axis angle"))
+		
 		lframe.grid_columnconfigure(1,weight=1)
 		lframe.grid_columnconfigure(2,weight=1)
 		lframe.grid_columnconfigure(3,weight=1)
 		lframe.grid_columnconfigure(4,weight=1)
-
+				
 		self.loadConfig()
-
+	
 	#-----------------------------------------------------------------------
-	def setValues(self):
-		orient = self.app.gcode.orient
-		self.orientXfrom.set(str(orient.xmin))
-		self.orientXTo.set(str(orient.xmax))
-		self.orientXbins.delete(0,END)
-		self.orientXbins.insert(0,orient.xn)
-		self.orientXstep["text"] = str(orient.xstep())
-
-		self.orientYfrom.set(str(orient.ymin))
-		self.orientYto.set(str(orient.ymax))
-		self.orientYbins.delete(0,END)
-		self.orientYbins.insert(0,orient.yn)
-		self.orientYstep["text"] = str(orient.ystep())
-
-		self.orientZmin.set(str(orient.zmin))
-		self.orientZmax.set(str(orient.zmax))
+	#def setValues(self):
+	#	orient = self.app.gcode.orient
+	#	self.orientXfrom.set(str(orient.xmin))
+	#	self.orientXTo.set(str(orient.xmax))
+	#	self.orientXbins.delete(0,END)
+	#	self.orientXbins.insert(0,orient.xn)
+	#	self.orientXstep["text"] = str(orient.xstep())
+	#
+	#	self.orientYfrom.set(str(orient.ymin))
+	#	self.orientYto.set(str(orient.ymax))
+	#	self.orientYbins.delete(0,END)
+	#	self.orientYbins.insert(0,orient.yn)
+	#	self.orientYstep["text"] = str(orient.ystep())
+	#
+	#	self.orientZmin.set(str(orient.zmin))
+	#	self.orientZmax.set(str(orient.zmax))
 
 	#-----------------------------------------------------------------------
 	def saveConfig(self):
@@ -1242,6 +1281,8 @@ class OrientationFrame(CNCRibbon.PageFrame):
 		Utils.setInt(  "Probe", "orientyn",   self.orientYbins.get())
 		Utils.setFloat("Probe", "orientzmin", self.orientZmin.get())
 		Utils.setFloat("Probe", "orientzmax", self.orientZmax.get())
+		Utils.setFloat("Probe", "orientxangle", self.orientXAngle.get())
+		Utils.setFloat("Probe", "orientyangle", self.orientYAngle.get())
 
 	#-----------------------------------------------------------------------
 	def loadConfig(self):
@@ -1253,13 +1294,20 @@ class OrientationFrame(CNCRibbon.PageFrame):
 		self.orientYProbe.set(Utils.getFloat("Probe","orientyprobe", -5))
 		self.orientZmin.set(Utils.getFloat("Probe","orientzmin", 0))
 		self.orientZmax.set(Utils.getFloat("Probe","orientzmax", 5))
+		self.orientXAngle.set(Utils.getFloat("Probe","orientxangle", 0))
+		self.orientYAngle.set(Utils.getFloat("Probe","orientyangle", 0))
 
 		self.orientXbins.delete(0,END)
 		self.orientXbins.insert(0,max(2,Utils.getInt("Probe","orientxn",5)))
 
 		self.orientYbins.delete(0,END)
 		self.orientYbins.insert(0,max(2,Utils.getInt("Probe","orientyn",5)))
+		self.orientUpdate()
 		
+	#-----------------------------------------------------------------------
+	def orientUpdate(self):
+		xyError = self.orientXAngle.getfloat(0.0)-self.orientYAngle.getfloat(0.0)+90.0
+		self.orientShear["text"] = str(xyError)
 	#-----------------------------------------------------------------------
 	def draw(self):
 		self.event_generate("<<DrawProbe>>")
@@ -1976,7 +2024,7 @@ class ToolFrame(CNCRibbon.PageFrame):
 		lines.append("%wait")
 		lines.append("%global toolheight; toolheight=wz")
 		lines.append("%global toolmz; toolmz=prbz")
-		lines.append("%update toolheight")
+		lines.append("%orientUpdate toolheight")
 		lines.append("g53 g0 z[toolchangez]")
 		lines.append("g53 g0 x[toolchangex] y[toolchangey]")
 		lines.append("g90")

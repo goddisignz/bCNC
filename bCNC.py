@@ -1704,7 +1704,7 @@ class Application(Toplevel,Sender):
 		elif cmd == "TABS":
 			self.gcode.createTabs(items, *args)
 
-		# Fill listbox and update selection
+		# Fill listbox and orientUpdate selection
 		self.editor.fill()
 		if sel is not None:
 			if isinstance(sel, str):
@@ -2090,7 +2090,7 @@ class Application(Toplevel,Sender):
 	#-----------------------------------------------------------------------
 	def checkStop(self):
 		try:
-			self.update()	# very tricky function of Tk
+			self.orientUpdate()	# very tricky function of Tk
 		except TclError:
 			pass
 		return self._stop
@@ -2172,9 +2172,9 @@ class Application(Toplevel,Sender):
 							path,
 							width=1,
 							fill=CNCCanvas.ENABLE_COLOR)
-					# Force a periodic update since this loop can take time
+					# Force a periodic orientUpdate since this loop can take time
 					if time.time() - before > 0.25:
-						self.update()
+						self.orientUpdate()
 						before = time.time()
 
 			# the buffer of the machine should be empty?
