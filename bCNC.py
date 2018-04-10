@@ -2352,6 +2352,7 @@ class Application(Toplevel,Sender):
 		if self._probeUpdate:
 			Page.frames["Probe:Probe"].updateProbe()
 			Page.frames["ProbeCommon"].updateTlo()
+			Page.frames["Probe:Orientation"].XYOrientUpdate()
 			self.canvas.drawProbe()
 			self._probeUpdate = False
 

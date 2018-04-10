@@ -1148,14 +1148,14 @@ class OrientationFrame(CNCRibbon.PageFrame):
 		self.addWidget(self.orientXProbe)
 
 		col += 1
-		self.orientXbins = Spinbox(lframe,
+		self.orientXsteps = Spinbox(lframe,
 					from_=2, to_=1000,
 					command=self.draw,
 					background="White",
 					width=3)
-		self.orientXbins.grid(row=row, column=col, sticky=EW)
-		tkExtra.Balloon.set(self.orientXbins, _("X bins"))
-		self.addWidget(self.orientXbins)
+		self.orientXsteps.grid(row=row, column=col, sticky=EW)
+		tkExtra.Balloon.set(self.orientXsteps, _("X steps"))
+		self.addWidget(self.orientXsteps)
 
 		# --- Y ---
 		row += 1
@@ -1181,14 +1181,14 @@ class OrientationFrame(CNCRibbon.PageFrame):
 		self.addWidget(self.orientYProbe)
 		
 		col += 1
-		self.orientYbins = Spinbox(lframe,
+		self.orientYsteps = Spinbox(lframe,
 					from_=2, to_=1000,
 					command=self.draw,
 					background="White",
 					width=3)
-		self.orientYbins.grid(row=row, column=col, sticky=EW)
-		tkExtra.Balloon.set(self.orientYbins, _("Y bins"))
-		self.addWidget(self.orientYbins)
+		self.orientYsteps.grid(row=row, column=col, sticky=EW)
+		tkExtra.Balloon.set(self.orientYsteps, _("Y steps"))
+		self.addWidget(self.orientYsteps)
 
 		# Max Z
 		row += 1
@@ -1213,11 +1213,9 @@ class OrientationFrame(CNCRibbon.PageFrame):
 		
 		col += 1
 
-		self.orientXAngleStrVar = StringVar()
-		self.orientXAngleStrVar.trace("w", lambda *_: self.orientUpdate())
-		self.orientXAngle = tkExtra.FloatEntry(lframe, background="White", width=5, textvariable=self.orientXAngleStrVar)
+		self.orientXAngle = Label(lframe, foreground="DarkBlue", background="gray90", width=5)
 		self.orientXAngle.grid(row=row, column=col, sticky=EW)
-		tkExtra.Balloon.set(self.orientXAngle, _("Set the X-axis angle"))
+		tkExtra.Balloon.set(self.orientXAngle, _("The X axis angle deviation in degree"))
 		self.addWidget(self.orientXAngle)
 		
 		row += 1
@@ -1226,11 +1224,9 @@ class OrientationFrame(CNCRibbon.PageFrame):
 		
 		col += 1
 
-		self.orientYAngleStrVar = StringVar()
-		self.orientYAngleStrVar.trace("w", lambda *_: self.orientUpdate())
-		self.orientYAngle = tkExtra.FloatEntry(lframe, background="White", width=5, textvariable=self.orientYAngleStrVar)
+		self.orientYAngle = Label(lframe, foreground="DarkBlue", background="gray90", width=5)
 		self.orientYAngle.grid(row=row, column=col, sticky=EW)
-		tkExtra.Balloon.set(self.orientYAngle, _("Set the Y axis angle"))
+		tkExtra.Balloon.set(self.orientYAngle, _("The Y axis angle deviation in degree"))
 		self.addWidget(self.orientYAngle)
 		
 		row += 1
@@ -1242,7 +1238,7 @@ class OrientationFrame(CNCRibbon.PageFrame):
 		
 		self.orientShear = Label(lframe, foreground="DarkBlue", background="gray90", width=5)
 		self.orientShear.grid(row=row, column=col, sticky=EW)
-		tkExtra.Balloon.set(self.orientShear, _("Axis angle"))
+		tkExtra.Balloon.set(self.orientShear, _("Angle between X and Y axis"))
 		
 		lframe.grid_columnconfigure(1,weight=1)
 		lframe.grid_columnconfigure(2,weight=1)
@@ -1256,14 +1252,14 @@ class OrientationFrame(CNCRibbon.PageFrame):
 	#	orient = self.app.gcode.orient
 	#	self.orientXfrom.set(str(orient.xmin))
 	#	self.orientXTo.set(str(orient.xmax))
-	#	self.orientXbins.delete(0,END)
-	#	self.orientXbins.insert(0,orient.xn)
+	#	self.orientXsteps.delete(0,END)
+	#	self.orientXsteps.insert(0,orient.xn)
 	#	self.orientXstep["text"] = str(orient.xstep())
 	#
 	#	self.orientYfrom.set(str(orient.ymin))
 	#	self.orientYto.set(str(orient.ymax))
-	#	self.orientYbins.delete(0,END)
-	#	self.orientYbins.insert(0,orient.yn)
+	#	self.orientYsteps.delete(0,END)
+	#	self.orientYsteps.insert(0,orient.yn)
 	#	self.orientYstep["text"] = str(orient.ystep())
 	#
 	#	self.orientZmin.set(str(orient.zmin))
@@ -1274,15 +1270,16 @@ class OrientationFrame(CNCRibbon.PageFrame):
 		Utils.setFloat("Probe", "orientxfrom", self.orientXfrom.get())
 		Utils.setFloat("Probe", "orientxto", self.orientXTo.get())
 		Utils.setFloat("Probe", "orientxprobe", self.orientXProbe.get())
-		Utils.setInt(  "Probe", "orientxn",   self.orientXbins.get())
+		Utils.setInt(  "Probe", "orientxn",   self.orientXsteps.get())
 		Utils.setFloat("Probe", "orientyfrom", self.orientYfrom.get())
 		Utils.setFloat("Probe", "orientyprobe", self.orientYProbe.get())
 		Utils.setFloat("Probe", "orientyto", self.orientYto.get())
-		Utils.setInt(  "Probe", "orientyn",   self.orientYbins.get())
+		Utils.setInt(  "Probe", "orientyn",   self.orientYsteps.get())
 		Utils.setFloat("Probe", "orientzmin", self.orientZmin.get())
 		Utils.setFloat("Probe", "orientzmax", self.orientZmax.get())
-		Utils.setFloat("Probe", "orientxangle", self.orientXAngle.get())
-		Utils.setFloat("Probe", "orientyangle", self.orientYAngle.get())
+		Utils.setFloat("Probe", "orientxangle", self.app.gcode.xyorient.phiX)
+		Utils.setFloat("Probe", "orientyangle", self.app.gcode.xyorient.phiY)
+		
 
 	#-----------------------------------------------------------------------
 	def loadConfig(self):
@@ -1294,32 +1291,34 @@ class OrientationFrame(CNCRibbon.PageFrame):
 		self.orientYProbe.set(Utils.getFloat("Probe","orientyprobe", -5))
 		self.orientZmin.set(Utils.getFloat("Probe","orientzmin", 0))
 		self.orientZmax.set(Utils.getFloat("Probe","orientzmax", 5))
-		self.orientXAngle.set(Utils.getFloat("Probe","orientxangle", 0))
-		self.orientYAngle.set(Utils.getFloat("Probe","orientyangle", 0))
+		self.app.gcode.xyorient.phiX = Utils.getFloat("Probe", "orientxangle", 0.0)
+		self.app.gcode.xyorient.phiY = Utils.getFloat("Probe", "orientyangle", 0.0)
 
-		self.orientXbins.delete(0,END)
-		self.orientXbins.insert(0,max(2,Utils.getInt("Probe","orientxn",5)))
+		self.orientXsteps.delete(0,END)
+		self.orientXsteps.insert(0,max(2,Utils.getInt("Probe","orientxn",5)))
 
-		self.orientYbins.delete(0,END)
-		self.orientYbins.insert(0,max(2,Utils.getInt("Probe","orientyn",5)))
-		self.orientUpdate()
-		
+		self.orientYsteps.delete(0,END)
+		self.orientYsteps.insert(0,max(2,Utils.getInt("Probe","orientyn",5)))
+		self.XYOrientUpdate()
 	#-----------------------------------------------------------------------
-	def orientUpdate(self):
-		xyError = self.orientXAngle.getfloat(0.0)-self.orientYAngle.getfloat(0.0)+90.0
-		self.orientShear["text"] = str(xyError)
-	#-----------------------------------------------------------------------
+	def XYOrientUpdate(self):
+		angleX, angleY = self.app.gcode.xyorient.getAnglesDeg()
+		xyError = angleY - angleX + 90.0
+		self.orientXAngle["text"] = '{:.3f}'.format(angleX)
+		self.orientYAngle["text"] = '{:.3f}'.format(angleY)
+		self.orientShear["text"] = '{:.3f}'.format(xyError)
+	#-----------------------------------------------------------------------	
 	def draw(self):
 		self.event_generate("<<DrawProbe>>")
-
 	#-----------------------------------------------------------------------
-	def clear(self, event=None):
+	def clear(self):
 		ans = tkMessageBox.askquestion(_("Delete orientation information"),
 			_("Do you want to delete all orientation information?"),
 			parent=self.winfo_toplevel())
 		if ans!=tkMessageBox.YES: return
-		self.app.gcode.probe.clear()
-		self.draw()
+		self.app.gcode.xyorient.phiX = 0.0
+		self.app.gcode.xyorient.phiY = 0.0
+		self.XYOrientUpdate()
 
 	#-----------------------------------------------------------------------
 	# Probe an L-shape
@@ -1345,18 +1344,18 @@ class OrientationFrame(CNCRibbon.PageFrame):
 		yprobe = float(self.orientYProbe.get())
 		zmin = float(self.orientZmin.get())
 		zmax = float(self.orientZmax.get())
-		xbins = int(self.orientXbins.get())
-		ybins = int(self.orientYbins.get())
+		xsteps = int(self.orientXsteps.get())
+		ysteps = int(self.orientYsteps.get())
 		
 		lines.append("G90 G21 F%.4f"  % (fastFeed) )
 		lines.append("G0 Z%4.f" % (zmax) )
 		lines.append("G0 X%.4f Y%.4f" % (xfrom, yfrom) )
 		lines.append("G0 Z%4.f" % (zmin) )
 		
-		xStep = (xto-xfrom) / float(xbins)
-		yStep = (yto-yfrom) / float(ybins)
+		xStep = (xto-xfrom) / float(xsteps-1)
+		yStep = (yto-yfrom) / float(ysteps-1)
 		
-		for i in range(0, xbins+1):
+		for i in range(0, xsteps):
 			lines.append("G0 Y%.4f" % (yfrom))
 			lines.append("G0 X%.4f" % (xfrom+i*xStep))
 			lines.append("%s F%.4f Y%.4f" % (prbCommand, fastFeed, xprobe) )
@@ -1367,7 +1366,7 @@ class OrientationFrame(CNCRibbon.PageFrame):
 		lines.append("G0 X%.4f Y%.4f" % (xfrom, yfrom))
 		lines.append("G0 Z%4.f" % (zmin) )
 		
-		for i in range(0, ybins+1):
+		for i in range(0, ysteps):
 			lines.append("G0 X%.4f" % (xfrom))
 			lines.append("G0 Y%.4f" % (yfrom+i*yStep))
 			lines.append("%s F%.4f X%.4f" % (prbCommand, fastFeed, yprobe) )
@@ -1377,9 +1376,9 @@ class OrientationFrame(CNCRibbon.PageFrame):
 		lines.append("G0 Z%4.f" % (zmax) )
 		lines.append("G0 X%.4f Y%.4f" % (xfrom, yfrom))
 		
-		self.app.gcode.xyorient.scan(xbins, ybins)
+		self.app.gcode.xyorient.scan(xsteps, ysteps);
 		self.app.run(lines)
-
+		
 #===============================================================================
 # Camera Group
 #===============================================================================

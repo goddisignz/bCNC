@@ -442,6 +442,8 @@ class XYOrient:
 		self.ypos = []
 		self.pointsx = 0
 		self.pointsy = 0
+		self.phiX = 0.0
+		self.phiY = 0.0
 		self.count = 0
 		self.start = False
 		self.matrix = [[1,0],[0,1]]
@@ -460,6 +462,9 @@ class XYOrient:
 		self.pointsy = 0
 		self.count = 0
 
+	def getAnglesDeg(self):
+		return self.phiX*360.0/(2.0*math.pi), self.phiY*360.0/(2.0*math.pi)
+	
 	#-----------------------------------------------------------------------
 	def add(self, x, y):
 		if not self.start: return
@@ -473,9 +478,10 @@ class XYOrient:
 		if self.pointsx == self.count:
 			self.phiX = -self.solve(self.xpos, self.ypos)
 			self.matrix[0][0] = math.cos(self.phiX)
-			self.matrix[1][0] = -math.sin(self.phiX)
+			self.matrix[1][0] = math.sin(self.phiX)
 			del self.xpos[:]
 			del self.ypos[:]
+			
 		
 		if self.pointsy == self.count:
 			self.phiY = self.solve(self.ypos, self.xpos)
@@ -483,7 +489,7 @@ class XYOrient:
 			self.matrix[1][1] = math.cos(self.phiY)
 			del self.xpos[:]
 			del self.ypos[:]
-			start = False			
+			self.start = False	
 		
 	def scan(self, pointsx, pointsy):	
 		self.clear()
@@ -492,11 +498,12 @@ class XYOrient:
 		self.pointsx = pointsx*3
 		self.pointsy = self.pointsx + pointsy*3
 		
+		
 	
 	def solve(self, abscissa, ordinate):	
 		m,b = numpy.polyfit(abscissa, ordinate, 1)
 		angle = math.atan(m)
-		return angle
+		return -angle
 
 	def compensate(self, x, y):
 		newx = x*self.matrix[0][0]+y*self.matrix[0][1]
