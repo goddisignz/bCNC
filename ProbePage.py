@@ -1209,6 +1209,15 @@ class OrientationFrame(CNCRibbon.PageFrame):
 		
 		row += 1
 		col = 0
+		Label(lframe, text=_("Probe Diameter")).grid(row=row, column=col, sticky=EW)
+		col +=1
+		self.toolDiameter = tkExtra.FloatEntry(lframe, background="White", width=5)
+		self.toolDiameter.grid(row=row, column=col, sticky=EW)
+		tkExtra.Balloon.set(self.toolDiameter, _("Probe Tool Diameter"))
+		self.addWidget(self.toolDiameter)
+		
+		row += 1
+		col = 0
 		Label(lframe, text=_("X-Axis Angle:")).grid(row=row, column=col, sticky=EW)
 		
 		col += 1
@@ -1229,10 +1238,15 @@ class OrientationFrame(CNCRibbon.PageFrame):
 		tkExtra.Balloon.set(self.orientYAngle, _("The Y axis angle deviation in degree"))
 		self.addWidget(self.orientYAngle)
 		
+		col += 2
+		Label(lframe, text=_("X")).grid(row=row, column=col, sticky=EW)
+		col += 1
+		Label(lframe, text=_("Y")).grid(row=row, column=col, sticky=EW)
+		
 		row += 1
 		col = 0
 		
-		Label(lframe, text=_("Axis Angle")).grid(row=row, column=col, sticky=EW)
+		Label(lframe, text=_("Axis Angle:")).grid(row=row, column=col, sticky=EW)
 		
 		col += 1
 		
@@ -1240,30 +1254,42 @@ class OrientationFrame(CNCRibbon.PageFrame):
 		self.orientShear.grid(row=row, column=col, sticky=EW)
 		tkExtra.Balloon.set(self.orientShear, _("Angle between X and Y axis"))
 		
+		cframe = LabelFrame(self, text=_("Compensation"), foreground="DarkBlue")
+		cframe.pack(side=TOP, fill=X)
+		
+		col += 1
+		
+		Label(lframe, text=_("Zero-Point:")).grid(row=row, column=col, sticky=EW)
+		
+		col += 1
+		
+		self.zeroPointX = Label(lframe, foreground="DarkBlue", background="gray90", width=5)
+		self.zeroPointX.grid(row=row, column=col, sticky=EW)
+		tkExtra.Balloon.set(self.zeroPointX, _("relative 0 point for X-axis"))
+		
+		col += 1
+		
+		self.zeroPointY = Label(lframe, foreground="DarkBlue", background="gray90", width=5)
+		self.zeroPointY.grid(row=row, column=col, sticky=EW)
+		tkExtra.Balloon.set(self.zeroPointY, _("relative 0 point for Y-axis"))
+		
+		cframe = LabelFrame(self, text=_("Compensation"), foreground="DarkBlue")
+		cframe.pack(side=TOP, fill=X)
+		
+		col=0
+		row=0
+		self.useCompensationVar = BooleanVar()
+		self.useCompensationCheckBox = Checkbutton(cframe, text=_("Use Compensation"), onvalue = True, offvalue = False, variable=self.useCompensationVar)
+		self.useCompensationCheckBox.grid(row=row, column=col, sticky=NSEW)
+		tkExtra.Balloon.set(self.useCompensationCheckBox, _("Turn on transformation compensation"))
+		
+				
 		lframe.grid_columnconfigure(1,weight=1)
 		lframe.grid_columnconfigure(2,weight=1)
 		lframe.grid_columnconfigure(3,weight=1)
 		lframe.grid_columnconfigure(4,weight=1)
 				
 		self.loadConfig()
-	
-	#-----------------------------------------------------------------------
-	#def setValues(self):
-	#	orient = self.app.gcode.orient
-	#	self.orientXfrom.set(str(orient.xmin))
-	#	self.orientXTo.set(str(orient.xmax))
-	#	self.orientXsteps.delete(0,END)
-	#	self.orientXsteps.insert(0,orient.xn)
-	#	self.orientXstep["text"] = str(orient.xstep())
-	#
-	#	self.orientYfrom.set(str(orient.ymin))
-	#	self.orientYto.set(str(orient.ymax))
-	#	self.orientYsteps.delete(0,END)
-	#	self.orientYsteps.insert(0,orient.yn)
-	#	self.orientYstep["text"] = str(orient.ystep())
-	#
-	#	self.orientZmin.set(str(orient.zmin))
-	#	self.orientZmax.set(str(orient.zmax))
 
 	#-----------------------------------------------------------------------
 	def saveConfig(self):
@@ -1275,10 +1301,14 @@ class OrientationFrame(CNCRibbon.PageFrame):
 		Utils.setFloat("Probe", "orientyprobe", self.orientYProbe.get())
 		Utils.setFloat("Probe", "orientyto", self.orientYto.get())
 		Utils.setInt(  "Probe", "orientyn",   self.orientYsteps.get())
+		Utils.setFloat("Probe", "tooldiameter", self.toolDiameter.get())
 		Utils.setFloat("Probe", "orientzmin", self.orientZmin.get())
 		Utils.setFloat("Probe", "orientzmax", self.orientZmax.get())
 		Utils.setFloat("Probe", "orientxangle", self.app.gcode.xyorient.phiX)
 		Utils.setFloat("Probe", "orientyangle", self.app.gcode.xyorient.phiY)
+		Utils.setFloat("Probe", "orientx0", self.app.gcode.xyorient.x0)
+		Utils.setFloat("Probe", "orienty0", self.app.gcode.xyorient.y0)
+		Utils.setBool("Probe", "orientcompensation", self.useCompensationVar.get())
 		
 
 	#-----------------------------------------------------------------------
@@ -1291,8 +1321,12 @@ class OrientationFrame(CNCRibbon.PageFrame):
 		self.orientYProbe.set(Utils.getFloat("Probe","orientyprobe", -5))
 		self.orientZmin.set(Utils.getFloat("Probe","orientzmin", 0))
 		self.orientZmax.set(Utils.getFloat("Probe","orientzmax", 5))
+		self.toolDiameter.set(Utils.getFloat("Probe","tooldiameter", 3))
 		self.app.gcode.xyorient.phiX = Utils.getFloat("Probe", "orientxangle", 0.0)
 		self.app.gcode.xyorient.phiY = Utils.getFloat("Probe", "orientyangle", 0.0)
+		self.app.gcode.xyorient.x0 = Utils.getFloat("Probe", "orienty0", 0.0)
+		self.app.gcode.xyorient.y0 = Utils.getFloat("Probe", "orientx0", 0.0)
+		self.useCompensationVar.set(Utils.getBool("Probe","orientcompensation", False))
 
 		self.orientXsteps.delete(0,END)
 		self.orientXsteps.insert(0,max(2,Utils.getInt("Probe","orientxn",5)))
@@ -1307,6 +1341,9 @@ class OrientationFrame(CNCRibbon.PageFrame):
 		self.orientXAngle["text"] = '{:.3f}'.format(angleX)
 		self.orientYAngle["text"] = '{:.3f}'.format(angleY)
 		self.orientShear["text"] = '{:.3f}'.format(xyError)
+		self.zeroPointX["text"] = '{:.3f}'.format(self.app.gcode.xyorient.x0)
+		self.zeroPointY["text"] =  '{:.3f}'.format(self.app.gcode.xyorient.y0)
+		
 	#-----------------------------------------------------------------------	
 	def draw(self):
 		self.event_generate("<<DrawProbe>>")
@@ -1376,7 +1413,7 @@ class OrientationFrame(CNCRibbon.PageFrame):
 		lines.append("G0 Z%4.f" % (zmax) )
 		lines.append("G0 X%.4f Y%.4f" % (xfrom, yfrom))
 		
-		self.app.gcode.xyorient.scan(xsteps, ysteps);
+		self.app.gcode.xyorient.scan(xsteps, ysteps, float(self.toolDiameter.get()));
 		self.app.run(lines)
 		
 #===============================================================================

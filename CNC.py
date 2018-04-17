@@ -446,7 +446,15 @@ class XYOrient:
 		self.phiY = 0.0
 		self.count = 0
 		self.start = False
+		self.toolDiameter = 0
+		self.useCompensation = False
 		self.matrix = [[1,0],[0,1]]
+		self.mx = 0
+		self.my = 0
+		self.bx = 0
+		self.by = 0
+		self.x0 = 0
+		self.y0 = 0
 		self.clear()
 
 	#-----------------------------------------------------------------------
@@ -455,15 +463,27 @@ class XYOrient:
 		del self.ypos[:]
 		del self.matrix[:]
 		self.matrix = [[1,0],[0,1]]
-		self.start = False		
+		self.start = False
+		self.useCompensation = False		
 		self.phiX = 0.0
 		self.phiY = 0.0
 		self.pointsx = 0
 		self.pointsy = 0
 		self.count = 0
+		self.toolDiameter = 0
+		self.mx = 0
+		self.my = 0
+		self.bx = 0
+		self.by = 0
+		self.x0 = 0
+		self.y0 = 0
+		
 
 	def getAnglesDeg(self):
 		return self.phiX*360.0/(2.0*math.pi), self.phiY*360.0/(2.0*math.pi)
+	
+	def useCompensation(self, use):
+		self.useCompensation = use
 	
 	#-----------------------------------------------------------------------
 	def add(self, x, y):
@@ -476,7 +496,8 @@ class XYOrient:
 		self.count+=1
 
 		if self.pointsx == self.count:
-			self.phiX = -self.solve(self.xpos, self.ypos)
+			self.mx, self.bx = self.solve(self.xpos, self.ypos)
+			self.phiX = math.atan(self.mx)
 			self.matrix[0][0] = math.cos(self.phiX)
 			self.matrix[1][0] = math.sin(self.phiX)
 			del self.xpos[:]
@@ -484,28 +505,47 @@ class XYOrient:
 			
 		
 		if self.pointsy == self.count:
-			self.phiY = self.solve(self.ypos, self.xpos)
-			self.matrix[0][1] = math.sin(self.phiY)
+			self.my, self.by = self.solve(self.ypos, self.xpos)
+			phiY = math.atan(-self.my)
+			self.phiY = phiY
+			self.matrix[0][1] = -math.sin(self.phiY)
 			self.matrix[1][1] = math.cos(self.phiY)
 			del self.xpos[:]
 			del self.ypos[:]
+			self.solveZero()
 			self.start = False	
 		
-	def scan(self, pointsx, pointsy):	
+	def scan(self, pointsx, pointsy, toolDiameter):
 		self.clear()
 		self.start = True
 		self.count = 0
 		self.pointsx = pointsx*3
 		self.pointsy = self.pointsx + pointsy*3
-		
-		
+		self.toolDiameter = toolDiameter
 	
 	def solve(self, abscissa, ordinate):	
 		m,b = numpy.polyfit(abscissa, ordinate, 1)
-		angle = math.atan(m)
-		return -angle
+		return m,b;
+	
+	def solveZero(self):
+		if self.toolDiameter < 0:
+			return
+			
+		bx = self.bx + self.toolDiameter/2
+		by = self.by - self.toolDiameter/2
+		mx = self.mx
+		my = self.my
+		
+		x = (bx*my+by)/(1-mx*my);
+		y = bx + mx*x
+			
+		self.x0 = x
+		self.y0 = y
 
 	def compensate(self, x, y):
+		if (not self.useCompensation) or self.start:
+			return x, y
+		
 		newx = x*self.matrix[0][0]+y*self.matrix[0][1]
 		newy = x*self.matrix[1][0]+y*self.matrix[1][1]
 		return newx, newy
