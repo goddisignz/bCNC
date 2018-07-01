@@ -1279,7 +1279,7 @@ class OrientationFrame(CNCRibbon.PageFrame):
 		col=0
 		row=0
 		self.useCompensationVar = BooleanVar()
-		self.useCompensationCheckBox = Checkbutton(cframe, text=_("Use Compensation"), onvalue = True, offvalue = False, variable=self.useCompensationVar)
+		self.useCompensationCheckBox = Checkbutton(cframe, text=_("Use Compensation"), onvalue = True, offvalue = False, variable=self.useCompensationVar, command=self.changeUseCompensation)
 		self.useCompensationCheckBox.grid(row=row, column=col, sticky=NSEW)
 		tkExtra.Balloon.set(self.useCompensationCheckBox, _("Turn on transformation compensation"))
 		
@@ -1326,7 +1326,7 @@ class OrientationFrame(CNCRibbon.PageFrame):
 		self.app.gcode.xyorient.phiY = Utils.getFloat("Probe", "orientyangle", 0.0)
 		self.app.gcode.xyorient.x0 = Utils.getFloat("Probe", "orienty0", 0.0)
 		self.app.gcode.xyorient.y0 = Utils.getFloat("Probe", "orientx0", 0.0)
-		self.useCompensationVar.set(Utils.getBool("Probe","orientcompensation", False))
+		self.app.gcode.xyorient.useCompensation = Utils.getBool("Probe","orientcompensation", False);		
 
 		self.orientXsteps.delete(0,END)
 		self.orientXsteps.insert(0,max(2,Utils.getInt("Probe","orientxn",5)))
@@ -1343,6 +1343,13 @@ class OrientationFrame(CNCRibbon.PageFrame):
 		self.orientShear["text"] = '{:.3f}'.format(xyError)
 		self.zeroPointX["text"] = '{:.3f}'.format(self.app.gcode.xyorient.x0)
 		self.zeroPointY["text"] =  '{:.3f}'.format(self.app.gcode.xyorient.y0)
+		self.useCompensationVar.set(self.app.gcode.xyorient.useCompensation)
+		print("compensation %s", str(self.app.gcode.xyorient.useCompensation))
+
+	def changeUseCompensation(self):
+		self.app.gcode.xyorient.useCompensation = self.useCompensationVar.get()
+		print("compensation %s", str(self.app.gcode.xyorient.useCompensation))
+
 		
 	#-----------------------------------------------------------------------	
 	def draw(self):

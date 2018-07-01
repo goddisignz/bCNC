@@ -448,7 +448,6 @@ class XYOrient:
 		self.start = False
 		self.toolDiameter = 0
 		self.useCompensation = False
-		self.matrix = [[1,0],[0,1]]
 		self.mx = 0
 		self.my = 0
 		self.bx = 0
@@ -461,8 +460,6 @@ class XYOrient:
 	def clear(self):
 		del self.xpos[:]
 		del self.ypos[:]
-		del self.matrix[:]
-		self.matrix = [[1,0],[0,1]]
 		self.start = False
 		self.useCompensation = False		
 		self.phiX = 0.0
@@ -482,9 +479,6 @@ class XYOrient:
 	def getAnglesDeg(self):
 		return self.phiX*360.0/(2.0*math.pi), self.phiY*360.0/(2.0*math.pi)
 	
-	def useCompensation(self, use):
-		self.useCompensation = use
-	
 	#-----------------------------------------------------------------------
 	def add(self, x, y):
 		if not self.start: return
@@ -498,8 +492,6 @@ class XYOrient:
 		if self.pointsx == self.count:
 			self.mx, self.bx = self.solve(self.xpos, self.ypos)
 			self.phiX = math.atan(self.mx)
-			self.matrix[0][0] = math.cos(self.phiX)
-			self.matrix[1][0] = math.sin(self.phiX)
 			del self.xpos[:]
 			del self.ypos[:]
 			
@@ -508,8 +500,6 @@ class XYOrient:
 			self.my, self.by = self.solve(self.ypos, self.xpos)
 			phiY = math.atan(-self.my)
 			self.phiY = phiY
-			self.matrix[0][1] = -math.sin(self.phiY)
-			self.matrix[1][1] = math.cos(self.phiY)
 			del self.xpos[:]
 			del self.ypos[:]
 			self.solveZero()
@@ -542,13 +532,19 @@ class XYOrient:
 		self.x0 = x
 		self.y0 = y
 
-	def compensate(self, x, y):
+	def gcode2machine(self, x, y):
 		if (not self.useCompensation) or self.start:
 			return x, y
 		
-		newx = x*self.matrix[0][0]+y*self.matrix[0][1]
-		newy = x*self.matrix[1][0]+y*self.matrix[1][1]
+		newx = x*math.cos(self.phiX)+y*-math.sin(self.phiY)
+		newy = x*math.sin(self.phiX)+y*math.cos(self.phiY)
 		return newx, newy
+	
+	def machine2gcode(self, x, y):
+		print("!!!not implemented yet!!!")
+		if (not self.useCompensation) or self.start:
+			return x, y
+		return x, y
 		
 
 #===============================================================================
@@ -814,7 +810,7 @@ class CNC:
 			"rpm"        : 0.0,
 
 			"planner"    : 0,
-			"rxbytes"    : 0,
+			"rxbytesgcode"    : 0,
 
 			"OvFeed"     : 100,	# Override status
 			"OvRapid"    : 100,
@@ -1303,6 +1299,7 @@ class CNC:
 	def motionStart(self, cmds):
 		#print "\n<<<",cmds
 		self.mval = 0	# reset m command
+		
 		for cmd in cmds:
 			c = cmd[0].upper()
 			try:
@@ -1310,7 +1307,7 @@ class CNC:
 			except:
 				value = 0
 
-			if   c == "X":
+			if c == "X":
 				self.xval = value*self.unit
 				if not self.absolute:
 					self.xval += self.x
@@ -2319,7 +2316,7 @@ class GCode:
 		self.undoredo = undo.UndoRedo()
 		self.probe    = Probe()
 		self.orient   = Orient()
-		self.xyorient   = XYOrient()
+		self.xyorient = XYOrient()
 		self.vars     = {}		# local variables
 		self.init()
 
@@ -3162,6 +3159,7 @@ class GCode:
 	def autolevel(self, items):
 		undoinfo = []
 		operation = "autolevel"
+
 		for bid in items:
 			block = self.blocks[bid]
 			if block.name() in ("Header", "Footer"): continue
@@ -3206,7 +3204,7 @@ class GCode:
 #					# moving up = end of block
 #					if self.cnc.dz > 0.0:
 #						if suffix:
-#							# Move all subsequent lines to a new block
+#							compile# Move all subsequent lines to a new block
 #							#self.blocks.append(Block())
 #							pass
 #				self.cnc.motionEnd()
@@ -4190,7 +4188,38 @@ class GCode:
 							break
 					else:
 						cmds.append(self.fmt('F',self.cnc.feed/self.cnc.unit))
-
+									
+				if (not autolevel) and self.cnc.gcode in (0,1,2,3) and self.cnc.mval==0:
+					xyz = self.cnc.motionPath()
+					if not xyz:
+						# while auto-levelling, do not ignore non-movement
+						# commands, just append the line as-is
+						#lines.append(line)
+						#paths.append(None)
+						add(line, None)
+					else:
+						extra = ""
+						for c in cmds:
+							if c[0].upper() not in ('G','X','Y','Z','I','J','K','R'):
+								extra += c
+						if self.cnc.gcode == 0:
+							g = 0
+						else:
+							g = 1
+						for k in range(0,len(xyz)):
+							x,y,z = xyz[k]
+							x, y = self.xyorient.gcode2machine(x,y)
+							add("G%d%s%s%s%s"%\
+								(g,
+								 self.fmt('X',x/self.cnc.unit),
+								 self.fmt('Y',y/self.cnc.unit),
+								 self.fmt('Z',z/self.cnc.unit),
+								 extra),
+							    (i,j))
+							extra = ""
+					self.cnc.motionEnd()
+					continue
+				
 				if autolevel and self.cnc.gcode in (0,1,2,3) and self.cnc.mval==0:
 					xyz = self.cnc.motionPath()
 					if not xyz:
@@ -4205,11 +4234,14 @@ class GCode:
 							if c[0].upper() not in ('G','X','Y','Z','I','J','K','R'):
 								extra += c
 						x1,y1,z1 = xyz[0]
+						x1, y1 = self.xyorient.gcode2machine(x1,y1)
+
 						if self.cnc.gcode == 0:
 							g = 0
 						else:
 							g = 1
 						for x2,y2,z2 in xyz[1:]:
+							x2, y2 = self.xyorient.gcode2machine(x2,y2)
 							for x,y,z in self.probe.splitLine(x1,y1,z1,x2,y2,z2):
 								add("G%d%s%s%s%s"%\
 									(g,
@@ -4246,7 +4278,7 @@ class GCode:
 				elif skip:
 					skip = False
 					continue
-
+ 
 				for cmd in cmds:
 					c = cmd[0]
 					try: value = float(cmd[1:])
@@ -4258,7 +4290,7 @@ class GCode:
 						if opt == SKIP: cmd = None
 					if cmd is not None:
 						newcmd.append(cmd)
-
+ 
 				add("".join(newcmd), (i,j))
 
 		return paths
